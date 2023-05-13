@@ -1,0 +1,14 @@
+;################
+;### By Aaron ###
+;### 12/01/08 ###
+;################
+
+on *:TEXT:!clone *:#: {
+    if (true) {
+        msg # test
+    }
+
+    set %clone1 $2-
+    set %clone on
+    msg # I am now cloning $2-
+}
