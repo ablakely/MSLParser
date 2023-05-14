@@ -7,4 +7,10 @@ use MSLParser;
 
 my $parser = MSLParser->new();
 
+$parser->alias('msg', sub {
+    my ($self, $msg) = @_;
+
+    print "$msg\n";
+});
+
 $parser->parse("./test.msl");

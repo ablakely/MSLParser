@@ -6,16 +6,38 @@ This project is in the alpha stages and is not suitable for real usage yet.  A l
 
 # Usage
 
-    use MSLParser;
+```perl
+# this is mainly pseudo code as of current.
 
-    my $parser = MSLParser->new();
+use MSLParser;
+my $msl = MSLParser->new();
 
-    $parser->cmd('echo', sub {
-        my ($args) = @_;
+$msl->alias('echo', sub {
+    my ($args) = @_;
+    print "$args\r\n";
+});
 
-        print "$args\r\n";
-    });
+$msl->setvar('%var', 'test');
+$msl->sethash('%hash', {
+    testval => 1
+});
 
-    $parser->parse('./test.msl');
+$msl->load('./test.msl');
 
+# calls a msl handler
+# on *:TEXT:!test:#lobby { ... }
+
+$msl->on_event({
+    network     => "*",
+    type        => "TEXT",
+    text        => "!test",
+    channel     => "#lobby",
+    
+    # mirc contexts ($nick, $host, etc)
+    nick        => "Nick",
+    host        => '~ab@test.example.tld'
+});
+
+$msl->tick(); # call this in main loop
+```
 

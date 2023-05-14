@@ -3,12 +3,23 @@
 ;### 12/01/08 ###
 ;################
 
+;on *:LOAD: {
+;    echo Hello $+ World testing $+ too
+;}
+
 on *:TEXT:!clone *:#: {
-    if (true) {
+    if (%testvar == $true && test == 1) {
         msg # test
+        echo hello world
+
+        if ($true) {
+            msg # test in depth 2
+        }
     }
 
-    set %clone1 $2-
-    set %clone on
-    msg # I am now cloning $2-
+;    set %clone1 $2-
+;    set %clone testing $+ lol $+ $true
+;    echo # I am now cloning %clone
+
+    dumpstate
 }
