@@ -32,6 +32,7 @@ sub new {
     my @src = split(//, $source);
 
     my $self = {
+        strace      => 1,
         file_path   => $file,
         source      => \@src,
         cur         => 0,
@@ -110,10 +111,16 @@ sub expect_token {
     my $token = $self->next_token();
 
     if (!$token) {
-        printf("%s: ERROR: expected %s but got end of file.\n",
+        my $err = sprintf("%s: ERROR: expected %s but got end of file.\n",
             $self->loc()->display(),
-            join(" or ", @_),
+            join(" or ", @_)
         );
+
+        if ($self->{strace}) {
+            confess $err; 
+        } else {
+            print $err;
+        }
 
         return 0;
     }
@@ -124,11 +131,17 @@ sub expect_token {
         }
     }
 
-    printf("%s: ERROR: expected %s but got %s\n",
+    my $err = sprintf("%s: ERROR: expected %s but got %s\n",
         $self->loc()->display(),
         join(" or ", @_),
         $token->{type}
     );
+
+    if ($self->{strace}) {
+        confess $err; 
+    } else {
+        print $err;
+    }
 
     return 0;
 }
@@ -210,7 +223,6 @@ sub next_token {
 
         if (exists($self->{ENV}->{aliases}->{$value})) {
             $test =~ s/^\s//;
-            #print "dbug: $value $test\n";
 
             $test .= "}" if ($value eq "if");
 
@@ -254,12 +266,46 @@ sub next_token {
             $value =~ s/^\s+//;
 
             $self->{_depth}--;
+            my ($trueblock, $falseblock, @elseifblocks);
 
             $self->chop_char();
-            my $trueblock = $self->parse_block();
 
+            print "b4 blockparse: ".$self->{source}[$self->{cur}+1]."\n";
 
-            return MSLParser::Condition->new($loc, $self->{_contype}, $value, $trueblock);
+            BLOCKPARSE: {
+                while (my @blocks = $self->parse_block()) {
+                    if (!join("\n", @blocks)) {
+                        last BLOCKPARSE;
+                    }
+                    print "ddd: \n".join("\n", @blocks)."\n";
+
+                    foreach my $block (@blocks) {
+                        last BLOCKPARSE if (!$block->{body});
+                        printf("dbug: %s\n", $block->{body});
+
+                        if ($block->{type} eq "IF_BLOCK") {
+                            print "true block\n";
+
+                            $trueblock = $block;
+                        } elsif ($block->{type} eq "ELSE_BLOCK") {
+                            print "else block\n";
+
+                            $falseblock = $block
+                        } else {
+                            last BLOCKPARSE;
+                        }
+                    }
+
+                }
+            }
+
+            #my $trueblock = $self->parse_block();
+            #return 0 if (!$trueblock);
+            
+            print "---here---\n";
+            $self->{_conmode} = 0;
+
+            return MSLParser::Condition->new($loc, $self->{_contype}, $value, $trueblock, $falseblock);
 
             #return MSLParser::Token->new($loc, TOKEN_CONDITION, "$value");
             #return MSLParser::Condition->new($loc, $value);
@@ -268,41 +314,71 @@ sub next_token {
 }
 
 
-
 sub parse_block {
     my ($self) = @_;
-    return 0 if (!$self->expect_token(TOKEN_OCURLY));
+    return 0 if (!$self->expect_token(TOKEN_OCURLY, TOKEN_CCURLY));
 
     my @block;
 
     while (1) {
+        return 0 if (!$self->{source}[$self->{cur}+1]);
+
         my $cmd = $self->expect_token(ALIAS_CALL, TOKEN_NAME, TOKEN_CCURLY, "IF_BLOCK");
         return 0 if (!$cmd);
         last if ($cmd->{type} eq TOKEN_CCURLY);
 
-        if ($cmd->{type} eq "IF_BLOCK") {
-            
-        }
+        print Dumper($cmd);
 
-        printf("d: %s\n", $cmd->{value});
+        if ($cmd->{type} eq "IF_BLOCK") {
+            push(@block, $cmd);
+
+            $self->{_depth}--;
+        }
 
         if ($cmd->{value} eq "if") {
             $self->{_depth}++;
             $self->{_conmode} = 1;
             $self->{_contype} = "IF_BLOCK";
 
-            print "here\n\n";
 
             return 0 unless ($self->expect_token(TOKEN_OPAREN));
-
+        } else {
+            push(@block, $cmd);
         }
-
-        push(@block, $cmd);
     }
 
+    if (my $token = $self->expect_token(TOKEN_CCURLY, TOKEN_NAME)) {
+        #print "dd: ".$token->{type}."\n".
+        
+        return 0 if (!join("\n", @block));
+        return 0 if (!$token);
+        return 0 if ($token->{type} eq TOKEN_CCURLY);
 
-    print "dbug: block = \n".join("\n", @block)."\n";
-    return MSLParser::Block->new($self->loc(), @block);
+        if ($token->{type} eq TOKEN_NAME && $token->{value} eq "else") {
+            my @eblock = ();
+            return 0 if (!$self->expect_token(TOKEN_OCURLY));
+            $self->{_depth}++;
+
+            print "here\n";
+
+            while (1) {
+                my $cmd = $self->expect_token(ALIAS_CALL, TOKEN_NAME, TOKEN_CCURLY, "IF_BLOCK");
+                return 0 if (!$cmd);
+                last if ($cmd->{type} eq TOKEN_CCURLY);
+
+                print "d: ".$cmd->{value}."\n";
+                
+                push(@eblock, $cmd);
+
+                print "block=\n".join("\n", @block)."\n";
+                print "eblock=\n".join("\n", @eblock)."\n";
+            }
+
+            return (MSLParser::Block->new($self->loc(), "IF_BLOCK", @block), MSLParser::Block->new($self->loc(), "ELSE_BLOCK", @eblock));
+        }
+    }
+
+    return 0;
 }
 
 

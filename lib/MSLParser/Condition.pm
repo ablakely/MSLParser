@@ -35,10 +35,11 @@ sub evaluate {
 sub display {
     my ($self) = @_;
 
-    return sprintf("%s:%s:%s",
+    return sprintf("%s:%s:%s: %s",
         $self->{loc}->{file_path},
         $self->{loc}->{row},
-        $self->{loc}->{col}
+        $self->{loc}->{col},
+        $self->{value}
     );
 }
 

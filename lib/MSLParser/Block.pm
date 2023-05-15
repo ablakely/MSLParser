@@ -5,8 +5,9 @@ use warnings;
 use Carp;
 
 sub new {
-    my ($class, $type, $body) = @_;
+    my ($class, $loc, $type, $body) = @_;
     my $self = {
+        loc  => $loc,
         type => $type,              # IF_BLOCK, ELSE_BLOCK, ELSEIF_BLOCK, or WHILE_BLOCK
         body => $body               # arrayref of MSLParser::AliasCall->new()
     };

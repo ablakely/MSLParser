@@ -9,11 +9,17 @@
 
 on *:TEXT:!clone *:#: {
     if (%testvar == $true && test == 1) {
-        msg # test
-        echo hello world
+        ;msg # test
+        ;echo hello world
 
         if ($true) {
             msg # test in depth 2
+
+            if ($true) {
+                msg # test in depth 3
+            } else {
+                msg # false test in depth 3
+            }
         }
     }
 
@@ -21,5 +27,5 @@ on *:TEXT:!clone *:#: {
 ;    set %clone testing $+ lol $+ $true
 ;    echo # I am now cloning %clone
 
-    dumpstate
+;    dumpstate
 }

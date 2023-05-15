@@ -16,7 +16,7 @@ sub new {
             aliases => {},
             vars    => {},
             hashes  => {},
-            conditions => ()
+            events  => {} 
         }
     };
 
