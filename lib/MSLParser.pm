@@ -78,7 +78,10 @@ sub parse {
         }
 
         if ($token->{type} eq "IF_BLOCK") {
-            push(@{$self->{ENV}->{conditions}}, $token);
+            print "got if_block\n";
+            print Dumper($token);
+
+            
         }
     }
 

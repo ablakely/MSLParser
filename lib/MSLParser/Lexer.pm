@@ -273,7 +273,18 @@ sub next_token {
             print "b4 blockparse: ".$self->{source}[$self->{cur}+1]."\n";
 
             BLOCKPARSE: {
-                while (my @blocks = $self->parse_block()) {
+                while (1) {
+                    last BLOCKPARSE if (!$self->{source}[$self->{cur}] || $self->{source}[$self->{cur}] eq "\n");
+
+                    print "blockparse loop++\n";
+                    my @blocks = $self->parse_block();
+                    last BLOCKPARSE if (@blocks);
+                    last BLOCKPARSE if (!$self->{source}[$self->{cur}] || $self->{source}[$self->{cur}] eq "\n");
+
+                    
+                    print "cur: |".$self->{source}[$self->{cur}]."|\n";
+
+                    
                     if (!join("\n", @blocks)) {
                         last BLOCKPARSE;
                     }
@@ -290,7 +301,8 @@ sub next_token {
                         } elsif ($block->{type} eq "ELSE_BLOCK") {
                             print "else block\n";
 
-                            $falseblock = $block
+                            $falseblock = $block;
+                            last BLOCKPARSE;
                         } else {
                             last BLOCKPARSE;
                         }
@@ -300,7 +312,7 @@ sub next_token {
             }
 
             #my $trueblock = $self->parse_block();
-            #return 0 if (!$trueblock);
+            return 0 if (!$trueblock);
             
             print "---here---\n";
             $self->{_conmode} = 0;
@@ -321,7 +333,8 @@ sub parse_block {
     my @block;
 
     while (1) {
-        return 0 if (!$self->{source}[$self->{cur}+1]);
+        print "pb cur: |".$self->{source}[$self->{cur}]."|\n";
+        return 0 if (!$self->{source}[$self->{cur}]);
 
         my $cmd = $self->expect_token(ALIAS_CALL, TOKEN_NAME, TOKEN_CCURLY, "IF_BLOCK");
         return 0 if (!$cmd);
@@ -362,11 +375,14 @@ sub parse_block {
             print "here\n";
 
             while (1) {
+                printf("----- cur: [%s] -----\n", $self->{source}[$self->{cur}]);
                 my $cmd = $self->expect_token(ALIAS_CALL, TOKEN_NAME, TOKEN_CCURLY, "IF_BLOCK");
                 return 0 if (!$cmd);
                 last if ($cmd->{type} eq TOKEN_CCURLY);
 
                 print "d: ".$cmd->{value}."\n";
+
+                
                 
                 push(@eblock, $cmd);
 
@@ -374,6 +390,7 @@ sub parse_block {
                 print "eblock=\n".join("\n", @eblock)."\n";
             }
 
+            print "---parseblock about to return---\n";
             return (MSLParser::Block->new($self->loc(), "IF_BLOCK", @block), MSLParser::Block->new($self->loc(), "ELSE_BLOCK", @eblock));
         }
     }

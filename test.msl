@@ -27,5 +27,5 @@ on *:TEXT:!clone *:#: {
 ;    set %clone testing $+ lol $+ $true
 ;    echo # I am now cloning %clone
 
-;    dumpstate
+    ;dumpstate
 }
